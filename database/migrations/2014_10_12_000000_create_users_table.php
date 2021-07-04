@@ -20,9 +20,10 @@ class CreateUsersTable extends Migration
             $table->string('password',128);
             $table->string('phone',11);
             $table->tinyInteger('vip_level')->default(0);
-            $table->integer('free_feed')->default(0);
+            $table->unsignedInteger('free_feed')->default(0);
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -23,12 +23,13 @@ class CreateFeedsTable extends Migration
             $table->string('main_dom',128)->nullable(); //正文
             $table->string('next_dom',128)->nullable(); //下一页按钮
             $table->string('comment_num_dom',128)->nullable(); //评论数
-            $table->integer('news_count')->default(0); //更新文章
-            $table->integer('feed_count')->default(0); //订阅人数
+            $table->unsignedInteger('news_count')->default(0); //更新文章
+            $table->unsignedInteger('feed_count')->default(0); //订阅人数
+            $table->unsignedInteger('update_next')->default(0)->index(); //下一次更新日期
             $table->tinyInteger('category_id')->default(0); //所属分类
             $table->tinyInteger('state')->default(0)->comment('-1不支持 0审核 1正常 2失效');
             $table->timestamps();
-            //$table->softDeletes();
+            $table->softDeletes();
         });
     }
 
