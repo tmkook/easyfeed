@@ -15,20 +15,20 @@ class CreateFeedsTable extends Migration
     {
         Schema::create('feeds', function (Blueprint $table) {
             $table->id();
-            $table->string('url');
-            $table->string('title')->nullable();
-            $table->string('icon')->nullable();
-            $table->string('description')->nullable();
-            $table->string('list_dom')->nullable();
-            $table->string('main_dom')->nullable();
-            $table->string('comment_num_dom')->nullable();
-            $table->tinyInteger('state')->default(0)->comment('0审核 1正常 2失效');
+            $table->string('url',128);
+            $table->string('title',128)->nullable(); //标题
+            $table->string('icon',128)->nullable(); //图标
+            $table->string('description',128)->nullable(); //描述
+            $table->string('list_dom',128)->nullable(); //列表
+            $table->string('main_dom',128)->nullable(); //正文
+            $table->string('next_dom',128)->nullable(); //下一页按钮
+            $table->string('comment_num_dom',128)->nullable(); //评论数
+            $table->integer('news_count')->default(0); //更新文章
+            $table->integer('feed_count')->default(0); //订阅人数
+            $table->tinyInteger('category_id')->default(0); //所属分类
+            $table->tinyInteger('state')->default(0)->comment('-1不支持 0审核 1正常 2失效');
             $table->timestamps();
             //$table->softDeletes();
-
-            // $table->string('phone');
-            // $table->tinyInteger('vip_level')->default(0);
-            // $table->integer('free_feed')->default(0);
         });
     }
 
