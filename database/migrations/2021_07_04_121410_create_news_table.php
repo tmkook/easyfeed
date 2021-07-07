@@ -19,8 +19,8 @@ class CreateNewsTable extends Migration
             $table->string('uuid',32)->index();
             $table->string('url',191);
             $table->string('title',128);
-            $table->string('summary',128)->nullable();
-            $table->string('cover',128)->default('')->nullable();
+            $table->string('summary',128)->default('')->nullable();
+            $table->text('cover',128)->default('')->nullable();
             $table->longText('main')->nullable();
             $table->unsignedInteger('view_count')->default(0); //阅读数
             $table->unsignedInteger('share_count')->default(0); //分享数

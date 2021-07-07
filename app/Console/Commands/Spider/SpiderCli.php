@@ -60,7 +60,7 @@ class SpiderCli extends SpiderInterface
         $url = '';
         if($this->feed->next_dom){
             $dom = $this->doc->find($this->feed->next_dom);
-            if(!empty($dom)){
+            if(!empty($dom[0])){
                 $url = $dom[0]->getAttribute('href');
                 $url = $this->url($url);
             }

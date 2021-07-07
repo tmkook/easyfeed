@@ -16,12 +16,12 @@ class CreateFeedsTable extends Migration
         Schema::create('feeds', function (Blueprint $table) {
             $table->id();
             $table->string('url',128);
-            $table->string('title',128)->nullable(); //标题
-            $table->string('icon',128)->nullable(); //图标
-            $table->string('description',128)->nullable(); //描述
-            $table->string('list_dom',128)->nullable(); //列表
-            $table->string('main_dom',128)->nullable(); //正文
-            $table->string('next_dom',128)->nullable(); //下一页按钮
+            $table->string('title',128)->default('')->nullable(); //标题
+            $table->string('icon',128)->default('')->nullable(); //图标
+            $table->string('description',128)->default('')->nullable(); //描述
+            $table->string('list_dom',128)->default('')->nullable(); //列表
+            $table->string('main_dom',128)->default('')->nullable(); //正文
+            $table->string('next_dom',128)->default('')->nullable(); //下一页按钮
             $table->unsignedInteger('news_count')->default(0); //更新文章
             $table->unsignedInteger('feed_count')->default(0); //订阅人数
             $table->unsignedInteger('update_next')->default(0)->index(); //下一次更新日期

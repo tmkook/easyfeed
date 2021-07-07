@@ -70,11 +70,11 @@ class Spider extends Command
         $feed = Feed::find($news->feed_id);
         $cli = new SpiderCli($feed);
         $cli->load($news->url);
-        $this->updateMain($feed,$cli);
+        $this->updateMain($feed,$news,$cli);
     }
 
     //抓取文章
-    protected function updateMain($feed,$cli){
+    protected function updateMain($feed,$news,$cli){
         $main = $cli->getMain();
         if(!empty($main)){
             $news->main = $main['main'];
@@ -92,9 +92,9 @@ class Spider extends Command
     //递归抓取全站
     protected function updateFeeds($feed,$cli,$url){
         $cli->load($url);
-        $next = $this->addFeed($feed,$cli);
+        $next = $this->updateFeed($feed,$cli);
         if($next){
-            $this->fetchFeeds($feed,$cli,$next);
+            $this->updateFeeds($feed,$cli,$next);
         }
     }
 
