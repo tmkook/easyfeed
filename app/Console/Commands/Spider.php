@@ -2,10 +2,11 @@
 
 namespace App\Console\Commands;
 
+
 use Illuminate\Console\Command;
+use App\Console\Commands\Spider\SpiderCli;
 use App\Models\Feed;
 use App\Models\News;
-
 
 class Spider extends Command
 {
@@ -14,29 +15,14 @@ class Spider extends Command
      *
      * @var string
      */
-    protected $signature = 'command:spider {type}';
+    protected $signature = 'command:spider {method} {arg}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'update feeds';
-
-    /**
-     * guzzle http client
-     * http request handle
-     * 
-     * @var object
-     */
-    // protected $client;
-
-    /**
-     * html parser
-     * 
-     * @var object
-     */
-    protected $dom;
+    protected $description = 'spider fetch url';
 
     /**
      * Create a new command instance.
@@ -46,8 +32,6 @@ class Spider extends Command
     public function __construct()
     {
         parent::__construct();
-        // $this->client = new \GuzzleHttp\Client;
-        $this->dom = new \PHPHtmlParser\Dom;
     }
 
     /**
@@ -57,89 +41,95 @@ class Spider extends Command
      */
     public function handle()
     {
-        $type = $this->argument('type');
-        $this->{$type}();
+        $method = $this->argument('method');
+        $this->{$method}();
         return 0;
     }
 
+    //递归更新
     public function feeds(){
-        $today = date('Ymd');
-        $feeds = Feed::where('update_next','<',$today)->where('state',Feed::SUCCESS)->orderBy('feed_count','desc');
-        foreach($feeds->cursor() as $item){
-            $this->feedNews($item,$item->url);
+        $id = $this->argument('arg');
+        $feed = Feed::find($id);
+        $cli = new SpiderCli($feed);
+        $this->updateFeeds($feed,$cli,$feed->url);
+    }
+
+    //更新一页
+    public function feed(){
+        $id = $this->argument('arg');
+        $feed = Feed::find($id);
+        $cli = new SpiderCli($feed);
+        $cli->load($feed->url);
+        $this->updateFeed($feed,$cli);
+    }
+
+    //更新文章
+    public function main(){
+        $id = $this->argument('arg');
+        $news = News::find($id);
+        $feed = Feed::find($news->feed_id);
+        $cli = new SpiderCli($feed);
+        $cli->load($news->url);
+        $this->updateMain($feed,$cli);
+    }
+
+    //抓取文章
+    protected function updateMain($feed,$cli){
+        $main = $cli->getMain();
+        if(!empty($main)){
+            $news->main = $main['main'];
+            $news->cover = $main['cover'];
+            $news->summary = $main['summary'];
+            $news->state = News::SUCCESS;
+            $news->save();
+        }else{
+            $news->state = News::FAIL;
+            $news->save();
+        }
+        return true;
+    }
+
+    //递归抓取全站
+    protected function updateFeeds($feed,$cli,$url){
+        $cli->load($url);
+        $next = $this->addFeed($feed,$cli);
+        if($next){
+            $this->fetchFeeds($feed,$cli,$next);
         }
     }
 
-    public function feedNews($item,$target){
-        try{
-            $doc = $this->dom->loadFromUrl($target);
-            $list = $doc->find($item->list_dom);
-            //找不到内容，可能失效需要人工检查
-            if(empty($list)){
-                $item->state = Feed::INVALID;
-                return $item->save();
-            }
-
-            //添加任务
-            foreach($list as $a){
-                $title = $a->text();
-                $url = $a->getAttribute('href');
-
-                //内容有误，可能失效需要人工检查
-                if(empty($title) || empty($url)){
-                    $item->state = Feed::INVALID;
-                    return $item->save();
+    //抓取一页
+    protected function updateFeed($feed,$cli){
+        $meta = $cli->getMeta();
+        $list = $cli->getList();
+        $next = $cli->getNext();
+        if(isset($meta['title'])){
+            $feed->title = $meta['title'];
+        }
+        if(isset($meta['description'])){
+            $feed->description = $meta['description'];
+        }
+        if(isset($meta['og:image'])){
+            $feed->icon = $meta['og:image'];
+        }
+        if(empty($list)){
+            $feed->state = Feed::FAIL;
+        }else{
+            foreach($list as $item){
+                $uuid = md5($item['url']);
+                $news = News::where('uuid',$uuid)->where('feed_id',$feed->id)->first();
+                if(empty($news)){
+                    $news = new News;
                 }
-
-                //检查内容是否已存在
-                $url = $this->makeUrl($item,$url);
-                $uuid = md5($url);
-                $news = News::where('feed_id',$item->id)->where('uuid',$uuid)->first();
-                if($news) return;
-
-                //内容不存在
-                $news = new News;
-                $news->feed_id = $item->id;
+                $news->feed_id = $feed->id;
                 $news->uuid = $uuid;
-                $news->url = $url;
-                $news->title = $title;
-                $news->state = News::SUCCESS;
+                $news->url = $item['url'];
+                $news->title = $item['title'];
+                $news->state = News::CHECK;
                 $news->save();
             }
-
-            //翻页
-            if($item->next_dom){
-                $next = $doc->find($item->next_dom)[0];
-                $nexturl = $next->getAttribute('href');
-                if($next && $nexturl){
-                    $nexturl = $this->makeUrl($nexturl);
-                    if($nexturl != $target){
-                        unset($doc,$list,$news);
-                        $this->feedNews($item,$nexturl);
-                    }
-                }
-            }
-        
-        //站点无法访问
-        }catch(\Exception $e){
-            echo $e->getMessage();
-            $item->state = Feed::FAIL;
-            return $item->save();
         }
-
-    }
-
-    public function news(){
-        
-    }
-
-    protected function makeUrl($item,$url){
-        if(empty($this->urlinfo)){
-            $this->urlinfo = parse_url($item->url);
-        }
-        if(strpos($url,'http') !== 0){
-            $url = $this->urlinfo['scheme'].'://'.$this->urlinfo['host'].$url;
-        }
-        return $url;
+        $feed->save();
+        return $next;
     }
 }

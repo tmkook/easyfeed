@@ -22,7 +22,6 @@ class CreateFeedsTable extends Migration
             $table->string('list_dom',128)->nullable(); //列表
             $table->string('main_dom',128)->nullable(); //正文
             $table->string('next_dom',128)->nullable(); //下一页按钮
-            $table->string('comment_num_dom',128)->nullable(); //评论数
             $table->unsignedInteger('news_count')->default(0); //更新文章
             $table->unsignedInteger('feed_count')->default(0); //订阅人数
             $table->unsignedInteger('update_next')->default(0)->index(); //下一次更新日期

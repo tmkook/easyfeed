@@ -22,7 +22,6 @@ class CreateNewsTable extends Migration
             $table->string('summary',128)->nullable();
             $table->string('cover',128)->default('')->nullable();
             $table->longText('main')->nullable();
-            $table->unsignedInteger('comment_count')->default(0); //评论数
             $table->unsignedInteger('view_count')->default(0); //阅读数
             $table->unsignedInteger('share_count')->default(0); //分享数
             $table->unsignedInteger('jump_count')->default(0); //查看源站数

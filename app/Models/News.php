@@ -12,4 +12,8 @@ class News extends Model
     const FAIL = -1;
     const CHECK = 0;
     const SUCCESS = 1;
+
+    protected $casts = [
+        'cover' => 'array',
+    ];
 }
