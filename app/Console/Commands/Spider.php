@@ -46,6 +46,26 @@ class Spider extends Command
         return 0;
     }
 
+    //新站点全站抓取
+    public function sitespider(){
+        $feed = Feed::where('state',Feed::CHECK);
+        foreach($feed->cursor() as $item){
+            $cli = new SpiderCli($item);
+            $this->updateFeeds($item,$cli,$item->url);
+        }
+    }
+
+    //老站点更新首页
+    public function newlyspider(){
+        $time = time();
+        $newly = Feed::where('state',Feed::SUCCESS)->where('update_next','<',$time);
+        foreach($newly->cursor() as $item){
+            $cli = new SpiderCli($item);
+            $cli->load($item->url);
+            $this->updateFeed($item,$cli);
+        }
+    }
+
     //递归更新
     public function feeds(){
         $id = $this->argument('arg');
@@ -109,16 +129,19 @@ class Spider extends Command
         if(isset($meta['description'])){
             $feed->description = $meta['description'];
         }
-        if(isset($meta['og:image'])){
-            $feed->icon = $meta['og:image'];
+        if(isset($meta['icon'])){
+            $feed->icon = $meta['icon'];
         }
+        $newly = 0;
         if(empty($list)){
             $feed->state = Feed::FAIL;
         }else{
+            $feed->state = Feed::SUCCESS;
             foreach($list as $item){
                 $uuid = md5($item['url']);
                 $news = News::where('uuid',$uuid)->where('feed_id',$feed->id)->first();
                 if(empty($news)){
+                    $newly++;
                     $news = new News;
                 }
                 $news->feed_id = $feed->id;
@@ -129,6 +152,12 @@ class Spider extends Command
                 $news->save();
             }
         }
+        if($newly > 0){
+            $feed->update_wait = 1;
+        }else{
+            $feed->update_wait += 1;
+        }
+        $feed->update_next = time() + 86400 * $feed->update_wait;
         $feed->save();
         return $next;
     }

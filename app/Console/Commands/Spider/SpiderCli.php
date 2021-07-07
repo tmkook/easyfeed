@@ -13,27 +13,42 @@ class SpiderCli extends SpiderInterface
     protected $target;
     
     public function load($target){
+        $client = new \GuzzleHttp\Client();
+        $response = $client->request('GET', $target);
+        $content = $response->getBody()->getContents();
+        $content = preg_replace('|<\s|','&lt;',$content); //todo:文章中含有><导致无法解析HTML,需转义正文中的符号
         $dom = new \PHPHtmlParser\Dom;
-        $this->doc = $dom->loadFromUrl($target);
+        $this->doc = $dom->loadStr($content);
         $this->target = $target;
     }
 
     public function getMeta(){
         $info = [];
+        $title = $this->doc->find('title');
+        if(!empty($title)){
+            $info['title'] = $title[0]->text;
+        }
         $meta = $this->doc->find('meta');
         foreach($meta as $m){
             $k = $m->getAttribute('name');
             $v = $m->getAttribute('content');
             if(empty($k)){
                 $k = $m->getAttribute('property');
+                if($k=='og:image'){
+                    $k = 'icon';
+                    $v = $this->url($v);
+                }
             }
             if($k){
                 $info[$k] = $v;
             }
         }
-        $title = $this->doc->find('title');
-        if(!empty($title)){
-            $info['title'] = $title[0]->text;
+        $link = $this->doc->find('link');
+        foreach($link as $m){
+            $k = $m->getAttribute('rel');
+            if(strpos($k,'icon') > 0){
+                $info['icon'] = $this->url($m->getAttribute('href'));
+            }
         }
         return $info;
     }
