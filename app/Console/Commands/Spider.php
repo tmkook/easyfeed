@@ -47,19 +47,23 @@ class Spider extends Command
     }
 
     public function test(){
-        $arg = json_decode('{"url":"https://codeigniter.org.cn/forums/forum-answer-1.html","list_dom":"th > a.s.xst","next_dom":".nxt","main_dom":""}');
-        $info = parse_url($arg->url);
+        $url = 'https://codeigniter.org.cn/forums/forum-answer-1.html';
+        $list_dom = 'th > a.s.xst';
+        $next_dom = '.nxt';
+        $info = parse_url($url);
         $cli = new SpiderCli($info['scheme'].'://'.$info['host']);
         $cli->load($arg->url);
-        if($arg->list_dom){
-            print_r($cli->getList($arg->list_dom));
+        if($list_dom){
+            print_r($cli->getList($list_dom));
         }
-        if($arg->next_dom){
-            print_r($cli->getNext($arg->next_dom));
+        if($next_dom){
+            print_r($cli->getNext($next_dom));
         }
-        if($arg->main_dom){
-            print_r($cli->getMain($arg->main_dom));
-        }
+
+        $url = 'https://codeigniter.org.cn/forums/thread-31186-1-1.html';
+        $selector = '.plhin';
+        $cli->load($url);
+        print_r($cli->getMain($selector));
     }
 
     //新站点全站抓取
