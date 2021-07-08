@@ -11,35 +11,52 @@ abstract class SpiderInterface
 
     abstract public function load($url);
 
-    abstract public function getMeta();
-
     abstract public function getList($selector);
 
     abstract public function getMain($selector);
 
     abstract public function getNext($selector);
 
+    abstract public function getMeta($name);
+
+    abstract public function getIcon();
+
+    abstract public function getTitle();
+
+    protected function getSummary($main){
+        return trim(mb_substr(strip_tags($main),0,64));
+    }
+
+    protected function getCover($main){
+        if(empty($this->cover)){
+            $this->fixImages($main);
+        }
+        $cover = $this->cover;
+        $this->cover = [];
+        return $cover;
+    }
+
+    protected function fixImages($main){
+        preg_match_all('|<img.*?src="([^"]*)"[^>]*>|i', $main, $cover);
+        $cover = $cover[1];
+        foreach($cover as $k=>$v){
+            $img = $this->url($v);
+            $cover[$k] = $img;
+            $main = str_replace($v,$img,$main);
+        }
+        $this->cover = array_slice($cover,0,3);
+        return $main;
+    }
+
     protected function listItem($url,$title){
         return ['url'=>$url,'title'=>$title];
     }
 
     protected function mainItem($main){
-        $summary = $this->summary($main);
-        $cover = $this->cover($main);
+        $main = $this->fixImages($main);
+        $cover = $this->getCover($main);
+        $summary = $this->getSummary($main);
         return ['main'=>$main,'summary'=>$summary,'cover'=>$cover];
-    }
-
-    protected function summary($main){
-        return trim(mb_substr(strip_tags($main),0,100));
-    }
-
-    protected function cover($main){
-        preg_match_all('#<img.*?src="([^"]*)"[^>]*>#i', $main, $cover);
-        $cover = array_slice($cover[1],0,3);
-        foreach($cover as $k=>$v){
-            $cover[$k] = $this->url($v);
-        }
-        return $cover;
     }
 
     protected function url($link){

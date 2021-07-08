@@ -47,8 +47,19 @@ class Spider extends Command
     }
 
     public function test(){
-        $cli = new SpiderCli('http://www.baidu.com');
-        $cli->test();
+        $arg = json_decode('{"url":"https://codeigniter.org.cn/forums/forum-answer-1.html","list_dom":"th > a.s.xst","next_dom":".nxt","main_dom":""}');
+        $info = parse_url($arg->url);
+        $cli = new SpiderCli($info['scheme'].'://'.$info['host']);
+        $cli->load($arg->url);
+        if($arg->list_dom){
+            print_r($cli->getList($arg->list_dom));
+        }
+        if($arg->next_dom){
+            print_r($cli->getNext($arg->next_dom));
+        }
+        if($arg->main_dom){
+            print_r($cli->getMain($arg->main_dom));
+        }
     }
 
     //新站点全站抓取
@@ -125,19 +136,12 @@ class Spider extends Command
 
     //抓取一页
     protected function updateFeed($feed,$cli){
-        $meta = $cli->getMeta();
+        $newly = 0;
+        $feed->title = $cli->getTitle();
+        $feed->icon = $cli->getIcon();
+        $feed->icon = $cli->getMeta('description');
         $list = $cli->getList($feed->list_dom);
         $next = $cli->getNext($feed->next_dom);
-        if(isset($meta['title'])){
-            $feed->title = $meta['title'];
-        }
-        if(isset($meta['description'])){
-            $feed->description = $meta['description'];
-        }
-        if(isset($meta['icon'])){
-            $feed->icon = $meta['icon'];
-        }
-        $newly = 0;
         if(empty($list)){
             $feed->state = Feed::FAIL;
         }else{
