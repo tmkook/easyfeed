@@ -86,6 +86,16 @@ class Spider extends Command
         }
     }
 
+    public function mainspider(){
+        $newly = News::where('state',News::CHECK)->limit(1000)->inRandomOrder();
+        foreach($newly->cursor() as $news){
+            $feed = Feed::find($news->feed_id);
+            $cli = new SpiderCli($feed->url);
+            $cli->load($news->url);
+            $this->updateMain($feed,$news,$cli);
+        }
+    }
+
     //递归更新
     public function feeds(){
         $id = $this->argument('arg');
@@ -169,6 +179,9 @@ class Spider extends Command
             $feed->update_wait = 1;
         }else{
             $feed->update_wait += 1;
+        }
+        if($feed->update_wait > 30){
+            $feed->update_wait = 30;
         }
         $feed->update_next = time() + 86400 * $feed->update_wait;
         $feed->save();

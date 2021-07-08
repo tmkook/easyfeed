@@ -25,7 +25,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('command:spider sitespider none')->daily();
-        $schedule->command('command:spider newlyspider none')->daily();
+        $schedule->command('command:spider newlyspider none')->dailyAt('03:00');
+        $schedule->command('command:spider mainspider none')->hourly();
     }
 
     /**
