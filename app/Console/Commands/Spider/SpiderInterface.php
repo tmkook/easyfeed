@@ -4,20 +4,20 @@ namespace App\Console\Commands\Spider;
 
 abstract class SpiderInterface
 {
-    protected $feed;
-    public function __construct($feed){
-        $this->feed = $feed;
+    protected $baseurl;
+    public function __construct($baseurl){
+        $this->baseurl = $baseurl;
     }
 
     abstract public function load($url);
 
     abstract public function getMeta();
 
-    abstract public function getList();
+    abstract public function getList($selector);
 
-    abstract public function getMain();
+    abstract public function getMain($selector);
 
-    abstract public function getNext();
+    abstract public function getNext($selector);
 
     protected function listItem($url,$title){
         return ['url'=>$url,'title'=>$title];
@@ -43,7 +43,7 @@ abstract class SpiderInterface
     }
 
     protected function url($link){
-        $site = parse_url($this->feed->url);
+        $site = parse_url($this->baseurl);
         $info = parse_url($link);
 
         //relate url

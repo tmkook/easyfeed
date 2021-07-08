@@ -46,11 +46,16 @@ class Spider extends Command
         return 0;
     }
 
+    public function test(){
+        $cli = new SpiderCli('http://www.baidu.com');
+        $cli->test();
+    }
+
     //新站点全站抓取
     public function sitespider(){
         $feed = Feed::where('state',Feed::CHECK);
         foreach($feed->cursor() as $item){
-            $cli = new SpiderCli($item);
+            $cli = new SpiderCli($item->url);
             $this->updateFeeds($item,$cli,$item->url);
         }
     }
@@ -60,7 +65,7 @@ class Spider extends Command
         $time = time();
         $newly = Feed::where('state',Feed::SUCCESS)->where('update_next','<',$time);
         foreach($newly->cursor() as $item){
-            $cli = new SpiderCli($item);
+            $cli = new SpiderCli($item->url);
             $cli->load($item->url);
             $this->updateFeed($item,$cli);
         }
@@ -70,7 +75,7 @@ class Spider extends Command
     public function feeds(){
         $id = $this->argument('arg');
         $feed = Feed::find($id);
-        $cli = new SpiderCli($feed);
+        $cli = new SpiderCli($feed->url);
         $this->updateFeeds($feed,$cli,$feed->url);
     }
 
@@ -78,7 +83,7 @@ class Spider extends Command
     public function feed(){
         $id = $this->argument('arg');
         $feed = Feed::find($id);
-        $cli = new SpiderCli($feed);
+        $cli = new SpiderCli($feed->url);
         $cli->load($feed->url);
         $this->updateFeed($feed,$cli);
     }
@@ -88,14 +93,14 @@ class Spider extends Command
         $id = $this->argument('arg');
         $news = News::find($id);
         $feed = Feed::find($news->feed_id);
-        $cli = new SpiderCli($feed);
+        $cli = new SpiderCli($feed->url);
         $cli->load($news->url);
         $this->updateMain($feed,$news,$cli);
     }
 
     //抓取文章
     protected function updateMain($feed,$news,$cli){
-        $main = $cli->getMain();
+        $main = $cli->getMain($feed->main_dom);
         if(!empty($main)){
             $news->main = $main['main'];
             $news->cover = $main['cover'];
@@ -121,8 +126,8 @@ class Spider extends Command
     //抓取一页
     protected function updateFeed($feed,$cli){
         $meta = $cli->getMeta();
-        $list = $cli->getList();
-        $next = $cli->getNext();
+        $list = $cli->getList($feed->list_dom);
+        $next = $cli->getNext($feed->next_dom);
         if(isset($meta['title'])){
             $feed->title = $meta['title'];
         }
