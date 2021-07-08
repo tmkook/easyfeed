@@ -24,9 +24,10 @@ abstract class SpiderInterface
     abstract public function getTitle();
 
     protected function getSummary($main){
+        $main = strip_tags($main);
         $main = str_replace(' ','',$main);
         $main = str_replace('&nbsp;','',$main);
-        return mb_substr(strip_tags($main),0,64);
+        return mb_substr($main,0,100);
     }
 
     protected function getCover($main){

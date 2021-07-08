@@ -70,8 +70,13 @@ class Spider extends Command
     public function sitespider(){
         $feed = Feed::where('state',Feed::CHECK);
         foreach($feed->cursor() as $item){
-            $cli = new SpiderCli($item->url);
-            $this->updateFeeds($item,$cli,$item->url);
+            try{
+                $cli = new SpiderCli($item->url);
+                $this->updateFeeds($item,$cli,$item->url);
+            }catch(\Exception $e){
+                $item->state = Feed::FAIL;
+                $item->save();
+            }
         }
     }
 
@@ -80,19 +85,30 @@ class Spider extends Command
         $time = time();
         $newly = Feed::where('state',Feed::SUCCESS)->where('update_next','<',$time);
         foreach($newly->cursor() as $item){
-            $cli = new SpiderCli($item->url);
-            $cli->load($item->url);
-            $this->updateFeed($item,$cli);
+            try{
+                $cli = new SpiderCli($item->url);
+                $cli->load($item->url);
+                $this->updateFeed($item,$cli);
+            }catch(\Exception $e){
+                $item->state = Feed::FAIL;
+                $item->save();
+            }
         }
     }
 
     public function mainspider(){
         $newly = News::where('state',News::CHECK)->limit(1000)->inRandomOrder();
         foreach($newly->cursor() as $news){
-            $feed = Feed::find($news->feed_id);
-            $cli = new SpiderCli($feed->url);
-            $cli->load($news->url);
-            $this->updateMain($feed,$news,$cli);
+            try{
+                $feed = Feed::find($news->feed_id);
+                $cli = new SpiderCli($feed->url);
+                $cli->load($news->url);
+                $this->updateMain($feed,$news,$cli);
+            }catch(\Exception $e){
+                $news->state = News::FAIL;
+                $news->save();
+            }
+            echo $news->id.' -- '.$news->state."\r\n";
         }
     }
 
