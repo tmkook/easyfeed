@@ -25,6 +25,7 @@ abstract class SpiderInterface
 
     protected function getSummary($main){
         $main = str_replace(' ','',$main);
+        $main = str_replace('&nbsp;','',$main);
         return mb_substr(strip_tags($main),0,64);
     }
 
