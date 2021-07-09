@@ -17,4 +17,4 @@ Route::get('/',function(){
     return redirect('discover');
 });
 Route::get('/discover', [NewsController::class, 'discover'])->name('discover');
-Route::get('/read{uuid}', [NewsController::class, 'read'])->name('read');
+Route::get('/a/{uuid}', [NewsController::class, 'read'])->name('read');

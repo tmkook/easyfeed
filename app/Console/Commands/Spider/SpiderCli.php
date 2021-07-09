@@ -24,8 +24,8 @@ class SpiderCli extends SpiderInterface
     }
 
     public function getTitle(){
-        $title = $this->doc->find('title');
-        return empty($title)? 'Untitled' : $title[0]->text;
+        $title = $this->doc->find('title')[0];
+        return empty($title)? '' : trim($title->text);
     }
 
     public function getIcon(){
@@ -66,7 +66,7 @@ class SpiderCli extends SpiderInterface
         $ret = [];
         $list = $this->doc->find($selector);
         foreach($list as $a){
-            $title = trim($a->innerText);
+            $title = mb_substr(trim($a->innerText),0,100);
             $url = $a->getAttribute('href');
             if(empty($url)) continue; //空内容
             $ret[] = $this->listItem($this->url($url),$title);
@@ -75,7 +75,14 @@ class SpiderCli extends SpiderInterface
     }
 
     public function getMain($selector){
-        $art = $this->doc->find($selector);
+        $art = $this->doc->find($selector)[0];
+        if(empty($art)){
+            $art = $this->doc->find('body')[0];
+        }
+        $copy = $art->find('.copyright')[0];
+        if(!empty($copy)){
+            $copy->delete();
+        }
         $main = $art->innerHtml;
         return empty($main)? null : $this->mainItem($main);
     }
@@ -83,9 +90,9 @@ class SpiderCli extends SpiderInterface
     public function getNext($selector){
         $url = '';
         if($selector){
-            $dom = $this->doc->find($selector);
-            if(!empty($dom[0])){
-                $url = $dom[0]->getAttribute('href');
+            $dom = $this->doc->find($selector)[0];
+            if(!empty($dom)){
+                $url = $dom->getAttribute('href');
                 $url = $this->url($url);
             }
         }

@@ -25,9 +25,9 @@ abstract class SpiderInterface
 
     protected function getSummary($main){
         $main = strip_tags($main);
-        $main = str_replace(' ','',$main);
+        $main = str_replace('  ','',$main);
         $main = str_replace('&nbsp;','',$main);
-        return mb_substr($main,0,100);
+        return trim(mb_substr($main,0,100));
     }
 
     protected function getCover($main){
@@ -85,13 +85,13 @@ abstract class SpiderInterface
             }
             $path = str_replace('../','',$path);
             $path = str_replace('./','',$path);
-            $path = $rel . $path;
+            $path = $rel.$path;
         }else{
             $path = $rel.$path;
         }
 
         //build url
-        $info['path'] = $path;
+        $info['path'] = rawurlencode($path);
         $url = $info['scheme'].'://'.$info['host'];
         if(!empty($info['port'])){
             $url = $url.":".$info['port'];

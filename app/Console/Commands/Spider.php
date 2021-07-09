@@ -46,26 +46,6 @@ class Spider extends Command
         return 0;
     }
 
-    public function test(){
-        $url = 'https://codeigniter.org.cn/forums/forum-answer-1.html';
-        $list_dom = 'th > a.s.xst';
-        $next_dom = '.nxt';
-        $info = parse_url($url);
-        $cli = new SpiderCli($info['scheme'].'://'.$info['host']);
-        $cli->load($arg->url);
-        if($list_dom){
-            print_r($cli->getList($list_dom));
-        }
-        if($next_dom){
-            print_r($cli->getNext($next_dom));
-        }
-
-        $url = 'https://codeigniter.org.cn/forums/thread-31186-1-1.html';
-        $selector = '.plhin';
-        $cli->load($url);
-        print_r($cli->getMain($selector));
-    }
-
     //新站点全站抓取
     public function sitespider(){
         $feed = Feed::where('state',Feed::CHECK);
@@ -96,6 +76,7 @@ class Spider extends Command
         }
     }
 
+    //更新全文
     public function mainspider(){
         $newly = News::where('state',News::CHECK)->limit(1000)->inRandomOrder();
         foreach($newly->cursor() as $news){
@@ -108,7 +89,6 @@ class Spider extends Command
                 $news->state = News::FAIL;
                 $news->save();
             }
-            echo $news->id.' -- '.$news->state."\r\n";
         }
     }
 
@@ -139,7 +119,7 @@ class Spider extends Command
         $this->updateMain($feed,$news,$cli);
     }
 
-    //抓取文章
+    //更新文章内容
     protected function updateMain($feed,$news,$cli){
         $main = $cli->getMain($feed->main_dom);
         if(!empty($main)){
@@ -152,10 +132,11 @@ class Spider extends Command
             $news->state = News::FAIL;
             $news->save();
         }
+        $this->info($news->url.' -- '.$news->state);
         return true;
     }
 
-    //递归抓取全站
+    //递归更新全站
     protected function updateFeeds($feed,$cli,$url){
         $cli->load($url);
         $next = $this->updateFeed($feed,$cli);
@@ -164,12 +145,12 @@ class Spider extends Command
         }
     }
 
-    //抓取一页
+    //更新一页
     protected function updateFeed($feed,$cli){
         $newly = 0;
         $feed->title = $cli->getTitle();
         $feed->icon = $cli->getIcon();
-        $feed->icon = $cli->getMeta('description');
+        $feed->description = $cli->getMeta('description');
         $list = $cli->getList($feed->list_dom);
         $next = $cli->getNext($feed->next_dom);
         if(empty($list)){
@@ -179,6 +160,9 @@ class Spider extends Command
             foreach($list as $item){
                 $uuid = md5($item['url']);
                 $news = News::where('uuid',$uuid)->where('feed_id',$feed->id)->first();
+                if(empty($item['title'])){
+                    continue;
+                }
                 if(empty($news)){
                     $newly++;
                     $news = new News;
@@ -189,6 +173,7 @@ class Spider extends Command
                 $news->title = $item['title'];
                 $news->state = News::CHECK;
                 $news->save();
+                $this->info($news->url.' -- '.$news->title);
             }
         }
         if($newly > 0){
