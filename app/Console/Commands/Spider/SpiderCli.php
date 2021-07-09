@@ -79,11 +79,13 @@ class SpiderCli extends SpiderInterface
         if(empty($art)){
             $art = $this->doc->find('body')[0];
         }
-        $copy = $art->find('.copyright')[0];
-        if(!empty($copy)){
-            $copy->delete();
+        if($art){
+            $copy = $art->find('.copyright')[0];
+            if(!empty($copy)){
+                $copy->delete();
+            }
+            $main = $art->innerHtml;
         }
-        $main = $art->innerHtml;
         return empty($main)? null : $this->mainItem($main);
     }
 

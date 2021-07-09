@@ -148,11 +148,13 @@ class Spider extends Command
     //更新一页
     protected function updateFeed($feed,$cli){
         $newly = 0;
-        $feed->title = $cli->getTitle();
-        $feed->icon = $cli->getIcon();
-        $feed->description = $cli->getMeta('description');
         $list = $cli->getList($feed->list_dom);
         $next = $cli->getNext($feed->next_dom);
+        if(empty($feed->title)){
+            $feed->title = $cli->getTitle();
+            $feed->icon = $cli->getIcon();
+            $feed->description = $cli->getMeta('description');
+        }
         if(empty($list)){
             $feed->state = Feed::FAIL;
         }else{

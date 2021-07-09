@@ -39,18 +39,6 @@ abstract class SpiderInterface
         return $cover;
     }
 
-    protected function fixImages($main){
-        preg_match_all('|<img.*?src="([^"]*)"[^>]*>|i', $main, $cover);
-        $cover = $cover[1];
-        foreach($cover as $k=>$v){
-            $img = $this->url($v);
-            $cover[$k] = $img;
-            $main = str_replace($v,$img,$main);
-        }
-        $this->cover = array_slice($cover,0,3);
-        return $main;
-    }
-
     protected function listItem($url,$title){
         return ['url'=>$url,'title'=>$title];
     }
@@ -60,6 +48,18 @@ abstract class SpiderInterface
         $cover = $this->getCover($main);
         $summary = $this->getSummary($main);
         return ['main'=>$main,'summary'=>$summary,'cover'=>$cover];
+    }
+
+    protected function fixImages($main){
+        preg_match_all('|<img.*?src="([^"]*)"[^>]*>|i', $main, $cover);
+        $cover = $cover[1];
+        foreach($cover as $k=>$v){
+            $img = $this->url($v);
+            $cover[$k] = $img;
+            $main = str_replace($v,$img,$main);
+        }
+        $this->cover = array_slice($cover,0,3);
+        return trim($main);
     }
 
     protected function url($link){
