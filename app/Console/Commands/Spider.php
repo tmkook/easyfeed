@@ -46,6 +46,13 @@ class Spider extends Command
         return 0;
     }
 
+    public function test(){
+        $item = Feed::find(9);
+        $url = 'https://www.ruanyifeng.com/blog/2004/01/';
+        $cli = new SpiderCli($item->url);
+        $this->updateFeeds($item,$cli,$url);
+    }
+
     //新站点全站抓取
     public function sitespider(){
         $feed = Feed::where('state',Feed::CHECK);
@@ -78,13 +85,19 @@ class Spider extends Command
 
     //更新全文
     public function mainspider(){
+        $upfeed = 0;
         $newly = News::where('state',News::CHECK)->limit(1000)->inRandomOrder();
         foreach($newly->cursor() as $news){
             try{
                 $feed = Feed::find($news->feed_id);
+                //同站点间隔抓取
+                if($feed->id == $upfeed && $feed->net_wait > 0){
+                    sleep($feed->net_wait);
+                }
                 $cli = new SpiderCli($feed->url);
                 $cli->load($news->url);
                 $this->updateMain($feed,$news,$cli);
+                $upfeed = $feed->id;
             }catch(\Exception $e){
                 $news->state = News::FAIL;
                 $news->save();
@@ -121,7 +134,7 @@ class Spider extends Command
 
     //更新文章内容
     protected function updateMain($feed,$news,$cli){
-        $main = $cli->getMain($feed->main_dom);
+        $main = $cli->getMain($feed->main_dom,$feed->del_dom);
         if(!empty($main)){
             $news->main = $main['main'];
             $news->cover = $main['cover'];
@@ -141,6 +154,10 @@ class Spider extends Command
         $cli->load($url);
         $next = $this->updateFeed($feed,$cli);
         if($next){
+            //同站点间隔抓取
+            if($feed->net_wait > 0){
+                sleep($feed->net_wait);
+            }
             $this->updateFeeds($feed,$cli,$next);
         }
     }
@@ -183,10 +200,10 @@ class Spider extends Command
         }else{
             $feed->update_wait += 1;
         }
-        if($feed->update_wait > 30){
-            $feed->update_wait = 30;
+        if($feed->update_wait > 168){
+            $feed->update_wait = 168;
         }
-        $feed->update_next = time() + 86400 * $feed->update_wait;
+        $feed->update_next = time() + 3600 * $feed->update_wait;
         $feed->save();
         return $next;
     }

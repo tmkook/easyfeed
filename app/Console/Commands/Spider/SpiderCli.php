@@ -12,12 +12,16 @@ class SpiderCli extends SpiderInterface
     protected $doc;
     protected $target;
 
+    public function __construct($baseurl){
+        parent::__construct($baseurl);
+        $this->client = new \GuzzleHttp\Client();
+    }
+
     public function load($target){
-        $client = new \GuzzleHttp\Client();
-        $response = $client->request('GET', $target);
+        $headers = ['User-Agent'=>'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'];
+        $response = $this->client->request('GET',$target,['headers'=>$headers]);
         $content = $response->getBody()->getContents();
         $content = preg_replace('|<\s|','&lt;',$content); //todo:文章中含有><导致无法解析HTML,需转义正文中的符号
-        $content = preg_replace('|\s>|','&lt;',$content); //临时解决
         $dom = new \PHPHtmlParser\Dom;
         $this->doc = $dom->loadStr($content);
         $this->target = $target;
@@ -74,15 +78,17 @@ class SpiderCli extends SpiderInterface
         return $ret;
     }
 
-    public function getMain($selector){
+    public function getMain($selector,$del){
         $art = $this->doc->find($selector)[0];
-        if(empty($art)){
-            $art = $this->doc->find('body')[0];
-        }
         if($art){
-            $copy = $art->find('.copyright')[0];
-            if(!empty($copy)){
-                $copy->delete();
+            if($del){
+                $del = explode(',',$del);
+                foreach($del as $ad){
+                    $deldom = $art->find($ad);
+                    if(!empty($deldom[0])){
+                        $deldom->delete();
+                    }
+                }
             }
             $main = $art->innerHtml;
         }
@@ -98,7 +104,7 @@ class SpiderCli extends SpiderInterface
                 $url = $this->url($url);
             }
         }
-        if(trim($this->baseurl,'/') == trim($url,'/')){
+        if($url && trim($this->baseurl,'/') == trim($url,'/')){
             $url = '';
         }
         return $url;

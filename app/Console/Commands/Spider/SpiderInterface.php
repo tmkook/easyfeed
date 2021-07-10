@@ -13,7 +13,7 @@ abstract class SpiderInterface
 
     abstract public function getList($selector);
 
-    abstract public function getMain($selector);
+    abstract public function getMain($selector,$del);
 
     abstract public function getNext($selector);
 

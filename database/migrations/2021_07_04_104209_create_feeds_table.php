@@ -22,10 +22,12 @@ class CreateFeedsTable extends Migration
             $table->string('list_dom',128)->default('')->nullable(); //列表
             $table->string('main_dom',128)->default('')->nullable(); //正文
             $table->string('next_dom',128)->default('')->nullable(); //下一页按钮
+            $table->string('del_dom',128)->default('')->nullable(); //下一页按钮
             $table->unsignedInteger('news_count')->default(0); //更新文章
             $table->unsignedInteger('feed_count')->default(0); //订阅人数
             $table->unsignedInteger('update_wait')->default(0)->index(); //等待多少天更新
             $table->unsignedInteger('update_next')->default(0)->index(); //下一次更新日期
+            $table->tinyInteger('net_wait')->default(0); //每一次请求停顿秒
             $table->tinyInteger('category_id')->default(0); //所属分类
             $table->tinyInteger('state')->default(0)->comment('-1不支持 0审核 1正常 2失效');
             $table->timestamps();
