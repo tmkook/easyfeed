@@ -205,6 +205,7 @@ class Spider extends Command
                 $news->url = $item['url'];
                 $news->title = $item['title'];
                 $news->state = News::CHECK;
+                $news->deleted_at = null;
                 $news->save();
                 $this->info($news->url.' -- '.$news->title);
             }
