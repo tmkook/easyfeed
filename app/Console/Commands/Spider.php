@@ -195,7 +195,8 @@ class Spider extends Command
                     continue;
                 }else if(empty($news)){
                     $newly++;
-                    $news = new News;
+                    $news = News::onlyTrashed()->first();
+                    $news = $news? $news : new News;
                 }else if($news->state == News::SUCCESS){
                     continue;
                 }
@@ -222,9 +223,12 @@ class Spider extends Command
     }
 
     public function test(){
-        $cli = new SpiderCli('https://ganjiacheng.cn');
-        $uri = 'test/艺术硕士';
-        echo $cli->url($uri);
+        // $news = News::onlyTrashed()->first();
+        // $news = $news? $news : new News;
+        // dd($news);
+        // $cli = new SpiderCli('https://ganjiacheng.cn');
+        // $uri = 'test/艺术硕士';
+        // echo $cli->url($uri);
         // $item = Feed::find(9);
         // $url = 'https://www.ruanyifeng.com/blog/2004/01/';
         // $cli = new SpiderCli($item->url);
