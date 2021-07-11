@@ -77,6 +77,7 @@ class Spider extends Command
                 $cli->load($item->url);
                 $this->updateFeed($item,$cli);
             }catch(\Exception $e){
+                sleep(1);
                 $item->state = Feed::FAIL;
                 $item->save();
                 $cli->load($item->url);
@@ -94,6 +95,7 @@ class Spider extends Command
             $cli->load($news->url);
             $this->updateMain($feed,$news,$cli);
         }catch(\Exception $e){
+            sleep(1);
             $cli->load($news->url);
             $this->updateMain($feed,$news,$cli);
         }
@@ -197,10 +199,11 @@ class Spider extends Command
                 $news = News::where('uuid',$uuid)->where('feed_id',$feed->id)->first();
                 if(empty($item['title'])){
                     continue;
-                }
-                if(empty($news)){
+                }else if(empty($news)){
                     $newly++;
                     $news = new News;
+                }else if($news->state == News::SUCCESS){
+                    continue;
                 }
                 $news->feed_id = $feed->id;
                 $news->uuid = $uuid;

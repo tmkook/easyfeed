@@ -18,8 +18,12 @@ class SpiderCli extends SpiderInterface
     }
 
     public function load($target){
-        $headers = ['User-Agent'=>'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50'];
-        $response = $this->client->request('GET',$target,['headers'=>$headers]);
+        $headers = [
+            'USER-AGENT'=>'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
+            'CLIENT-IP'=>'40.221.206.111',
+            'X-FORWARDED-FOR'=>'40.221.206.111',
+        ];
+        $response = $this->client->request('GET',$target,['headers'=>$headers,'referer'=>true,'verify'=>false]);
         $content = $response->getBody()->getContents();
         $content = preg_replace('|<\s|','&lt;',$content); //todo:文章中含有><导致无法解析HTML,需转义正文中的符号
         $dom = new \PHPHtmlParser\Dom;
