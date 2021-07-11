@@ -46,13 +46,6 @@ class Spider extends Command
         return 0;
     }
 
-    public function test(){
-        $item = Feed::find(9);
-        $url = 'https://www.ruanyifeng.com/blog/2004/01/';
-        $cli = new SpiderCli($item->url);
-        $this->updateFeeds($item,$cli,$url);
-    }
-
     //新站点全站抓取
     public function sitespider(){
         $feed = Feed::where('state',Feed::CHECK);
@@ -173,6 +166,7 @@ class Spider extends Command
         $next = $this->updateFeed($feed,$cli);
         if($next){
             //同站点间隔抓取
+            $this->info($next);
             if($feed->net_wait > 0){
                 sleep($feed->net_wait);
             }
@@ -225,5 +219,14 @@ class Spider extends Command
         $feed->update_next = time() + 3600 * $feed->update_wait;
         $feed->save();
         return $next;
+    }
+
+    public function test(){
+        // $item = Feed::find(9);
+        // $url = 'https://www.ruanyifeng.com/blog/2004/01/';
+        // $cli = new SpiderCli($item->url);
+        // $this->updateFeeds($item,$cli,$url);
+
+        
     }
 }
