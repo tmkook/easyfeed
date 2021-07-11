@@ -79,7 +79,23 @@ class Spider extends Command
             }catch(\Exception $e){
                 $item->state = Feed::FAIL;
                 $item->save();
+                $cli->load($item->url);
+                $this->updateFeed($item,$cli);
             }
+        }
+    }
+
+    public function mainspiderone(){
+        $news = News::where('state',News::CHECK)->inRandomOrder()->first();
+        if(empty($news)) return;
+        try{
+            $feed = Feed::find($news->feed_id);
+            $cli = new SpiderCli($feed->url);
+            $cli->load($news->url);
+            $this->updateMain($feed,$news,$cli);
+        }catch(\Exception $e){
+            $cli->load($news->url);
+            $this->updateMain($feed,$news,$cli);
         }
     }
 

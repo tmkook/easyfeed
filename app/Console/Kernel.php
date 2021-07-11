@@ -26,7 +26,7 @@ class Kernel extends ConsoleKernel
     {
         //$schedule->command('command:spider sitespider none')->daily();
         $schedule->command('command:spider newlyspider none')->everyFourHours();
-        $schedule->command('command:spider mainspider none')->hourly();
+        $schedule->command('command:spider mainspiderone none')->everyMinute();
     }
 
     /**
