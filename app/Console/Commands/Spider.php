@@ -222,6 +222,9 @@ class Spider extends Command
     }
 
     public function test(){
+        $cli = new SpiderCli('https://ganjiacheng.cn');
+        $uri = 'test/艺术硕士';
+        echo $cli->url($uri);
         // $item = Feed::find(9);
         // $url = 'https://www.ruanyifeng.com/blog/2004/01/';
         // $cli = new SpiderCli($item->url);

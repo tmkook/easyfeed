@@ -62,7 +62,7 @@ abstract class SpiderInterface
         return trim($main);
     }
 
-    protected function url($link){
+    public function url($link){
         $site = parse_url($this->baseurl);
         $info = parse_url($link);
 
