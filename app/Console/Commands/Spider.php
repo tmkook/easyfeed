@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-
+use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Console\Command;
 use App\Console\Commands\Spider\SpiderCli;
 use App\Models\Feed;
@@ -234,7 +234,30 @@ class Spider extends Command
         // $url = 'https://www.ruanyifeng.com/blog/2004/01/';
         // $cli = new SpiderCli($item->url);
         // $this->updateFeeds($item,$cli,$url);
-
+        $html = file_get_contents(dirname(__FILE__).'/test.txt');
+        $crawler = new Crawler($html);
+        $p = $crawler->filter('.entry-content');
         
+        $rm = $p->filter('#useraction');
+        foreach($rm as $a){
+            $a->parentNode->removeChild($a);
+        }
+
+        $rm = $p->filter('div');
+        foreach($rm as $a){
+            if(trim($a->textContent) == ''){
+                $a->parentNode->removeChild($a);
+            }
+        }
+
+        $rm = $p->filter('p');
+        foreach($rm as $a){
+            if(trim($a->textContent) == ''){
+                $a->parentNode->removeChild($a);
+            }
+        }
+
+        dd($p->html());
     }
 }
+
