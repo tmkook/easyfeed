@@ -9,43 +9,53 @@ use Illuminate\Support\Facades\Log;
 class SpiderCli extends SpiderInterface
 {
     protected $doc;
-    protected $target;
-
+    protected $next;
     public function __construct($baseurl){
+        $options = [
+            'delay' => 1000,
+            'timeout' => 15,
+            'verify' => false,
+            'allow_redirects' => [
+                'max' => 2,
+                'referer' => true,
+            ],
+            'headers' => [
+                'USER-AGENT'=>'Mozilla/5.0 (Spider/1.0)',
+                'CLIENT-IP'=>'40.221.206.111',
+                'X-FORWARDED-FOR'=>'40.221.206.111',
+            ]
+        ];
+        $this->client = new \GuzzleHttp\Client($options);
         parent::__construct($baseurl);
-        $this->client = new \GuzzleHttp\Client();
+        $this->next = [];
     }
 
     public function load($target){
-        $headers = [
-            'USER-AGENT'=>'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
-            'CLIENT-IP'=>'40.221.206.111',
-            'X-FORWARDED-FOR'=>'40.221.206.111',
-        ];
-        $response = $this->client->request('GET',$target,['headers'=>$headers,'referer'=>true,'verify'=>false]);
+        $response = $this->client->get($target);
         $content = $response->getBody()->getContents();
-        $content = preg_replace('|<\s|','&lt;',$content); //todo:文章中含有><导致无法解析HTML,需转义正文中的符号    
         $this->doc = new Crawler($content);
-        $this->target = $target;
     }
 
     public function getTitle(){
         $title = $this->doc->filter('title');
-        return trim($title->html());
+        return trim($title->text());
     }
 
     public function getIcon(){
-        $icon = '';
-        $link = $this->doc->filter('link');
-        foreach($link as $m){
-            $k = $m->attr('rel');
+        $link = $this->doc->filter('head > link')->each(function($m){
+            return $m;
+        });
+        foreach($link as $item){
+            $k = $item->attr('rel');
             if(strpos($k,'icon') > 0){
-                $icon = $this->url($m->attr('href'));
+                $icon = $item->attr('href');
                 break;
             }
         }
         if(empty($icon)){
-            $meta = $this->doc->filter('meta');
+            $meta = $this->doc->filter('meta')->each(function($m){
+                return $m;
+            });
             foreach($meta as $m){
                 $k = $m->attr('property');
                 if($k=='og:image'){
@@ -55,9 +65,9 @@ class SpiderCli extends SpiderInterface
             }
         }
         if(empty($icon)){
-            $icon = trim($this->baseurl,'/').'/favicon.ico';
+            $icon = '/favicon.ico';
         }
-        return $icon;
+        return $this->url($icon);
     }
 
     public function getMeta($name){
@@ -88,18 +98,7 @@ class SpiderCli extends SpiderInterface
                 }
             }
         }
-        $rm = $art->filter('div');
-        foreach($rm as $a){
-            if(trim($a->textContent) == ''){
-                $a->parentNode->removeChild($a);
-            }
-        }
-        $rm = $art->filter('p');
-        foreach($rm as $a){
-            if(trim($a->textContent) == ''){
-                $a->parentNode->removeChild($a);
-            }
-        }
+        $this->removeTags($art,['p','a','div','script','style']);
         $main = $art->html();
         return empty($main)? null : $this->mainItem($main);
     }
@@ -110,18 +109,22 @@ class SpiderCli extends SpiderInterface
             $dom = $this->doc->filter($selector);
             if(!empty($dom)){
                 $url = $dom->attr('href');
-                $url = $this->url($url);
+                $url = trim($this->url($url),'/');
             }
         }
-        if($url && trim($this->baseurl,'/') == trim($url,'/')){
+        if($this->baseurl == $url || in_array($url,$this->next)){
             $url = '';
+        }else{
+            $this->next[] = $url;
         }
         return $url;
     }
 
     protected function getMetas(){
         $info = [];
-        $meta = $this->doc->filter('meta');
+        $meta = $this->doc->filter('meta')->each(function($m){
+            return $m;
+        });
         foreach($meta as $m){
             $k = $m->attr('name');
             $v = $m->attr('content');
@@ -130,5 +133,17 @@ class SpiderCli extends SpiderInterface
             }
         }
         return $info;
+    }
+
+    protected function removeTags($art,$arr){
+        foreach($arr as $tag){
+            $art->filter($tag)->each(function($ele){
+                if(trim($ele->html()) == ''){
+                   foreach($ele as $a){
+                        $a->parentNode->removeChild($a);
+                   }
+                }
+            });
+        }
     }
 }

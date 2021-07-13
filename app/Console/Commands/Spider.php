@@ -56,6 +56,7 @@ class Spider extends Command
             }catch(\Exception $e){
                 $item->state = Feed::FAIL;
                 $item->save();
+                $this->updateFeeds($item,$cli,$item->url);
             }
         }
     }
@@ -70,7 +71,6 @@ class Spider extends Command
                 $cli->load($item->url);
                 $this->updateFeed($item,$cli);
             }catch(\Exception $e){
-                sleep(1);
                 $item->state = Feed::FAIL;
                 $item->save();
                 $cli->load($item->url);
@@ -88,7 +88,8 @@ class Spider extends Command
             $cli->load($news->url);
             $this->updateMain($feed,$news,$cli);
         }catch(\Exception $e){
-            sleep(1);
+            $news->state = News::FAIL;
+            $news->save();
             $cli->load($news->url);
             $this->updateMain($feed,$news,$cli);
         }
@@ -215,8 +216,8 @@ class Spider extends Command
         }else{
             $feed->update_wait += 1;
         }
-        if($feed->update_wait > 168){
-            $feed->update_wait = 168;
+        if($feed->update_wait > 720){
+            $feed->update_wait = 720;
         }
         $feed->update_next = time() + 3600 * $feed->update_wait;
         $feed->save();
@@ -224,40 +225,15 @@ class Spider extends Command
     }
 
     public function test(){
-        // $news = News::onlyTrashed()->first();
-        // $news = $news? $news : new News;
-        // dd($news);
-        // $cli = new SpiderCli('https://ganjiacheng.cn');
-        // $uri = 'test/艺术硕士';
-        // echo $cli->url($uri);
-        // $item = Feed::find(9);
-        // $url = 'https://www.ruanyifeng.com/blog/2004/01/';
-        // $cli = new SpiderCli($item->url);
-        // $this->updateFeeds($item,$cli,$url);
-        $html = file_get_contents(dirname(__FILE__).'/test.txt');
-        $crawler = new Crawler($html);
-        $p = $crawler->filter('.entry-content');
-        
-        $rm = $p->filter('#useraction');
-        foreach($rm as $a){
-            $a->parentNode->removeChild($a);
-        }
-
-        $rm = $p->filter('div');
-        foreach($rm as $a){
-            if(trim($a->textContent) == ''){
-                $a->parentNode->removeChild($a);
-            }
-        }
-
-        $rm = $p->filter('p');
-        foreach($rm as $a){
-            if(trim($a->textContent) == ''){
-                $a->parentNode->removeChild($a);
-            }
-        }
-
-        dd($p->html());
+        $cli = new SpiderCli('https://www.williamlong.info');
+        $cli->load('https://www.williamlong.info');
+        $this->info($cli->getTitle());
+        $this->info($cli->getIcon());
+        $this->info($cli->getNext('.pagination .next-page'));
+        $this->info($cli->getMeta('description'));
+        $this->info(json_encode($cli->getList('.entry > h1 > a')));
+        $cli->load('https://www.williamlong.info/archives/6493.html');
+        print_r($cli->getMain('.entry-content','.thumb,#article_dig'));
     }
 }
 

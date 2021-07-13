@@ -6,7 +6,7 @@ abstract class SpiderInterface
 {
     protected $baseurl;
     public function __construct($baseurl){
-        $this->baseurl = $baseurl;
+        $this->baseurl = trim($baseurl,'/');
     }
 
     abstract public function load($url);
@@ -59,7 +59,7 @@ abstract class SpiderInterface
             $main = str_replace($v,$img,$main);
         }
         $this->cover = array_slice($cover,0,3);
-        return trim($main);
+        return trim(str_replace("\t","",$main));
     }
 
     public function url($link){
