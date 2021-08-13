@@ -11,7 +11,7 @@
         "guzzlehttp/guzzle": "^7.0.1",
         "laravel/framework": "^8.40",
         "laravel/tinker": "^2.5",
-        "symfony/dom-crawler": "^5.3"
+        "tmkook/easyhtml": "*"
     },
     "require-dev": {
         "facade/ignition": "^2.5",

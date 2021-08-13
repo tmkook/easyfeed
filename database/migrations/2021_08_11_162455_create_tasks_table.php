@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateNewsTable extends Migration
+class CreateUrlTasksTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,17 +13,14 @@ class CreateNewsTable extends Migration
      */
     public function up()
     {
-        Schema::create('news', function (Blueprint $table) {
+        Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('feed_id')->index();
             $table->string('uuid',32)->index();
             $table->string('url',191);
-            $table->string('title',191);
-            $table->text('cover',128)->nullable();
-            $table->string('summary',128)->default('')->nullable();
-            $table->longText('content')->nullable();
-            $table->integer('weight')->default(0); //质量权重
-            $table->integer('state')->default(1); //0无效 1正常
+            $table->tinyInteger('mode');//0=list 1=content
+            $table->tinyInteger('failed')->default(0); //失败次数
+            $table->integer('reqtime')->default(0); //请求时长
             $table->timestamps();
             $table->softDeletes();
         });
@@ -36,6 +33,6 @@ class CreateNewsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('news');
+        Schema::dropIfExists('tasks');
     }
 }

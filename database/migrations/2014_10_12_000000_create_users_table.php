@@ -17,11 +17,8 @@ class CreateUsersTable extends Migration
             $table->id();
             $table->string('name',16);
             $table->string('email',128)->unique();
-            $table->string('phone',16)->unique();
             $table->string('password',128);
-            $table->tinyInteger('vip_level')->default(0);
-            $table->unsignedInteger('free_feed')->default(0);
-            $table->timestamp('email_verified_at')->nullable();
+            $table->integer('admin_id')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });
