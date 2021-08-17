@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Console\Command;
-use App\Console\Commands\Spider\SpiderCli;
 use App\Models\Feed;
 use App\Models\News;
+use App\Models\Task;
 
 class Spider extends Command
 {
@@ -15,7 +14,7 @@ class Spider extends Command
      *
      * @var string
      */
-    protected $signature = 'command:spider {method} {arg}';
+    protected $signature = 'command:spider {method}';
 
     /**
      * The console command description.
@@ -46,194 +45,96 @@ class Spider extends Command
         return 0;
     }
 
-    //新站点全站抓取
-    public function sitespider(){
-        $feed = Feed::where('state',Feed::CHECK);
-        foreach($feed->cursor() as $item){
-            try{
-                $cli = new SpiderCli($item->url);
-                $this->updateFeeds($item,$cli,$item->url);
-            }catch(\Exception $e){
-                $item->state = Feed::FAIL;
-                $item->save();
-                $this->updateFeeds($item,$cli,$item->url);
-            }
+    public function list(){
+        $feed = Task::with('feed')->where('mode',TASK::MODE_LIST)->inRandomOrder()->first();
+        if(empty($feed)) return;
+        $content = new \Tmkook\EasyContent($feed->feed->url);
+        $html = new \Tmkook\EasyHTML($feed->url);
+        $list = $html->getList();
+        foreach($list['list'] as $url){
+            $url = $content->url($url);
+            $uuid = md5($url);
+            $has = Task::where('uuid',$uuid)->withTrashed()->first();
+            if($has) continue;
+            $task = new Task;
+            $task->uuid = $uuid;
+            $task->url = $url;
+            $task->feed_id = $feed->feed_id;
+            $task->mode = TASK::MODE_CONTENT;
+            $task->save();
         }
-    }
-
-    //老站点更新首页
-    public function newlyspider(){
-        $time = time();
-        $newly = Feed::where('state',Feed::SUCCESS)->where('update_next','<',$time);
-        foreach($newly->cursor() as $item){
-            try{
-                $cli = new SpiderCli($item->url);
-                $cli->load($item->url);
-                $this->updateFeed($item,$cli);
-            }catch(\Exception $e){
-                $item->state = Feed::FAIL;
-                $item->save();
-                $cli->load($item->url);
-                $this->updateFeed($item,$cli);
-            }
+        foreach($list['page'] as $url){
+            $url = $content->url($url);
+            $uuid = md5($url);
+            $has = Task::where('uuid',$uuid)->withTrashed()->first();
+            if($has) continue;
+            $task = new Task;
+            $task->uuid = $uuid;
+            $task->url = $url;
+            $task->feed_id = $feed->feed_id;
+            $task->mode = TASK::MODE_LIST;
+            $task->save();
         }
+        $feed->delete();
     }
 
-    public function mainspiderone(){
-        $news = News::where('state',News::CHECK)->inRandomOrder()->first();
-        if(empty($news)) return;
-        try{
-            $feed = Feed::find($news->feed_id);
-            $cli = new SpiderCli($feed->url);
-            $cli->load($news->url);
-            $this->updateMain($feed,$news,$cli);
-        }catch(\Exception $e){
-            $news->state = News::FAIL;
-            $news->save();
-            $cli->load($news->url);
-            $this->updateMain($feed,$news,$cli);
-        }
+    public function content(){
+        $task = Task::with('feed')->where('mode',TASK::MODE_CONTENT)->inRandomOrder()->first();
+        $has = News::where('uuid',$task->uuid)->withTrashed()->first();
+        if($has) return;
+        $html = new \Tmkook\EasyHTML($task->url);
+        $content = new \Tmkook\EasyContent($task->feed->url,$html->getContent());
+        $news = new News;
+        $news->url = $task->url;
+        $news->uuid = $task->uuid;
+        $news->feed_id = $task->feed_id;
+        $news->title = $html->getTitle();
+        $news->cover = $content->getImages(3);
+        $news->summary = $content->getText(100);
+        $news->content = $content->getContent();
+        $news->save();
+        $task->delete();
     }
 
-    //更新全文
-    public function mainspider(){
-        $upfeed = 0;
-        $newly = News::where('state',News::CHECK)->limit(1000)->inRandomOrder();
-        foreach($newly->cursor() as $news){
-            try{
-                $feed = Feed::find($news->feed_id);
-                //同站点间隔抓取
-                if($feed->id == $upfeed && $feed->net_wait > 0){
-                    sleep($feed->net_wait);
-                }
-                $cli = new SpiderCli($feed->url);
-                $cli->load($news->url);
-                $this->updateMain($feed,$news,$cli);
-                $upfeed = $feed->id;
-            }catch(\Exception $e){
-                $news->state = News::FAIL;
-                $news->save();
-            }
-        }
-    }
-
-    //递归更新
-    public function feeds(){
-        $id = $this->argument('arg');
-        $feed = Feed::find($id);
-        $cli = new SpiderCli($feed->url);
-        $this->updateFeeds($feed,$cli,$feed->url);
-    }
-
-    //更新一页
     public function feed(){
-        $id = $this->argument('arg');
-        $feed = Feed::find($id);
-        $cli = new SpiderCli($feed->url);
-        $cli->load($feed->url);
-        $this->updateFeed($feed,$cli);
-    }
-
-    //更新文章
-    public function main(){
-        $id = $this->argument('arg');
-        $news = News::find($id);
-        $feed = Feed::find($news->feed_id);
-        $cli = new SpiderCli($feed->url);
-        $cli->load($news->url);
-        $this->updateMain($feed,$news,$cli);
-    }
-
-    //更新文章内容
-    protected function updateMain($feed,$news,$cli){
-        $main = $cli->getMain($feed->main_dom,$feed->del_dom);
-        if(!empty($main)){
-            $news->main = $main['main'];
-            $news->cover = $main['cover'];
-            $news->summary = $main['summary'];
-            $news->state = News::SUCCESS;
-            $news->save();
-        }else{
-            $news->state = News::FAIL;
-            $news->save();
+        $feed = Feed::where('state',1)->where('update_wait','<',time())->first();
+        if(empty($feed)) return;
+        $content = new \Tmkook\EasyContent($feed->url);
+        $html = new \Tmkook\EasyHTML($feed->url);
+        $list = $html->getList();
+        $hasnew = false;
+        foreach($list['list'] as $url){
+            $url = $content->url($url);
+            $uuid = md5($url);
+            $has = Task::where('uuid',$uuid)->withTrashed()->first();
+            if($has) continue;
+            $hasnew = true;
+            $task = new Task;
+            $task->uuid = $uuid;
+            $task->url = $url;
+            $task->feed_id = $feed->id;
+            $task->mode = TASK::MODE_CONTENT;
+            $task->save();
         }
-        $this->info($news->url.' -- '.$news->state);
-        return true;
-    }
-
-    //递归更新全站
-    protected function updateFeeds($feed,$cli,$url){
-        $cli->load($url);
-        $next = $this->updateFeed($feed,$cli);
-        if($next){
-            //同站点间隔抓取
-            $this->info($next);
-            if($feed->net_wait > 0){
-                sleep($feed->net_wait);
-            }
-            $this->updateFeeds($feed,$cli,$next);
+        foreach($list['page'] as $url){
+            $url = $content->url($url);
+            $uuid = md5($url);
+            $has = Task::where('uuid',$uuid)->withTrashed()->first();
+            if($has) continue;
+            $hasnew = true;
+            $task = new Task;
+            $task->uuid = $uuid;
+            $task->url = $url;
+            $task->feed_id = $feed->id;
+            $task->mode = TASK::MODE_LIST;
+            $task->save();
         }
-    }
-
-    //更新一页
-    protected function updateFeed($feed,$cli){
-        $newly = 0;
-        $list = $cli->getList($feed->list_dom);
-        $next = $cli->getNext($feed->next_dom);
-        if(empty($feed->title)){
-            $feed->title = $cli->getTitle();
-            $feed->icon = $cli->getIcon();
-            $feed->description = $cli->getMeta('description');
+        $day = 1;
+        if(!$hasnew){
+            $ts = $feed->updated_wait - strtotime($feed->updated_at);
+            $day += intval($ts / 86400);
         }
-        if(empty($list)){
-            $feed->state = Feed::FAIL;
-        }else{
-            $feed->state = Feed::SUCCESS;
-            foreach($list as $item){
-                $uuid = md5($item['url']);
-                $news = News::where('uuid',$uuid)->where('feed_id',$feed->id)->first();
-                if(empty($item['title'])){
-                    continue;
-                }else if(empty($news)){
-                    $newly++;
-                    $news = News::onlyTrashed()->first();
-                    $news = $news? $news : new News;
-                }else if($news->state == News::SUCCESS){
-                    continue;
-                }
-                $news->feed_id = $feed->id;
-                $news->uuid = $uuid;
-                $news->url = $item['url'];
-                $news->title = $item['title'];
-                $news->state = News::CHECK;
-                $news->deleted_at = null;
-                $news->save();
-                $this->info($news->url.' -- '.$news->title);
-            }
-        }
-        if($newly > 0){
-            $feed->update_wait = 1;
-        }else{
-            $feed->update_wait += 1;
-        }
-        if($feed->update_wait > 720){
-            $feed->update_wait = 720;
-        }
-        $feed->update_next = time() + 3600 * $feed->update_wait;
+        $feed->update_wait = time() + 86400 * $day;
         $feed->save();
-        return $next;
-    }
-
-    public function test(){
-        $cli = new SpiderCli('https://www.williamlong.info');
-        $cli->load('https://www.williamlong.info');
-        $this->info($cli->getTitle());
-        $this->info($cli->getIcon());
-        $this->info($cli->getNext('.pagination .next-page'));
-        $this->info($cli->getMeta('description'));
-        $this->info(json_encode($cli->getList('.entry > h1 > a')));
-        $cli->load('https://www.williamlong.info/archives/6493.html');
-        print_r($cli->getMain('.entry-content','.thumb,#article_dig'));
     }
 }
-

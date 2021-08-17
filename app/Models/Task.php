@@ -12,4 +12,8 @@ class Task extends Model
 
     const MODE_LIST = 0;
     const MODE_CONTENT = 1;
+
+    public function feed(){
+        return $this->hasOne('App\Models\Feed','id','feed_id');
+    }
 }

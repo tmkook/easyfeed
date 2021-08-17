@@ -14,8 +14,7 @@ class News extends Model
         'cover' => 'array',
     ];
 
-    public function feed()
-    {
+    public function feed(){
         return $this->hasOne('App\Models\Feed','id','feed_id');
     }
 }
